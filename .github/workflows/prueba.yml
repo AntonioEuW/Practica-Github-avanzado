@@ -19,3 +19,4 @@ jobs:
             Write-Host "ERROR: Los tokens no coinciden."
             exit 1
           }
+# Segunda prueba: token local modificado
