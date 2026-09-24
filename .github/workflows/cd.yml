@@ -1,0 +1,54 @@
+name: CD
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Incrementar versión del README
+        run: |
+          CURRENT_VERSION=$(grep -oE 'AppVersion-[0-9]+' README.md | tail -n 1 | cut -d '-' -f 2)
+          if [ -z "$CURRENT_VERSION" ]; then
+            CURRENT_VERSION=0
+          fi
+          NEXT_VERSION=$((CURRENT_VERSION + 1))
+          sed -i -E "s/AppVersion-[0-9]+/AppVersion-$NEXT_VERSION/g" README.md
+          echo "Actualizada: $(date '+%Y-%m-%d %H:%M:%S UTC')" >> README.md
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "Incrementar versión a AppVersion-$NEXT_VERSION"
+          git push
+
+  validate-prod:
+    needs: bump-version
+    runs-on: self-hosted
+
+    steps:
+      - name: Validar token de producción
+        env:
+          PROD_TOKEN: ${{ secrets.PROD_TOKEN }}
+        run: |
+          if ($env:PROD_TOKEN -eq $env:LOCAL_PROD_TOKEN) {
+            Write-Output "Token de producción válido"
+          }
+          else {
+            Write-Output "Error: el token de producción no coincide"
+            exit 1
+          }
