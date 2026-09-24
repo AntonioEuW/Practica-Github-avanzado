@@ -23,6 +23,9 @@ jobs:
 
       - name: Añadir feature al README
         run: |
+          if [ ! -f README.md ]; then
+            echo "AppVersion-0" > README.md
+          fi
           echo "Añadida feature: ${{ github.head_ref || github.ref_name }}" >> README.md
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
