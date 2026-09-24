@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [develop]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+
+      - name: Añadir feature al README
+        run: |
+          if [ ! -f README.md ]; then
+            echo "AppVersion-0" > README.md
+          fi
+          echo "Añadida feature: ${{ github.head_ref || github.ref_name }}" >> README.md
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "Actualizar README desde CI"
+          git push
+
+  validate-dev:
+    needs: update-readme
+    runs-on: self-hosted
+
+    steps:
+      - name: Validar token de desarrollo
+        env:
+          DEV_TOKEN: ${{ secrets.DEV_TOKEN }}
+        run: |
+          if ($env:DEV_TOKEN -eq $env:LOCAL_DEV_TOKEN) {
+            Write-Output "Token de desarrollo válido"
+          }
+          else {
+            Write-Output "Error: el token de desarrollo no coincide"
+            exit 1
+          }
